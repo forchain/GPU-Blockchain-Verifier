@@ -1,15 +1,15 @@
-# sys.path.append("lib")
+# sys.path.append("bitcoin")
 
 import json
 import os
 import pandas as pd
 import mmap
 
-from lib.BlockFileInfoFromBlockIndex import block_db_g, blocks_path_g
-from lib.ChainstateIndex import getRecentBlockHash, chainstate_db_g
-from lib.TraverseBlockchain import getBlockIndex, parseBlockHeader
-from lib.CoinbaseTransaction import getCoinbaseTransactionInfo
-from lib.BlockTransactions import getTransactionInfo
+from bitcoin.BlockFileInfoFromBlockIndex import block_db_g, blocks_path_g
+from bitcoin.ChainstateIndex import getRecentBlockHash, chainstate_db_g
+from bitcoin.TraverseBlockchain import getBlockIndex, parseBlockHeader
+from bitcoin.CoinbaseTransaction import getCoinbaseTransactionInfo
+from bitcoin.BlockTransactions import getTransactionInfo
 
 
 def verify_blockchain() -> None:
@@ -32,21 +32,23 @@ def verify_blockchain() -> None:
             with mmap.mmap(block_file.fileno(), 0, prot=mmap.PROT_READ,
                            flags=mmap.MAP_PRIVATE) as mptr:  # File is open read-only
                 blockheader, prev_blockhash_bigendian_b = parseBlockHeader(mptr, start, jsonobj['height'])
-                coinbase_tx = getCoinbaseTransactionInfo(mptr)
-                print('CoinBase:')
-                print(json.dumps(coinbase_tx, indent=4))
-                tx = getTransactionInfo(mptr)
-                print('Transaction:')
-                print(json.dumps(tx, indent=4))
-                break
 
-        blockheader['height'] = jsonobj['height']
-        blockheader['tx_count'] = jsonobj['tx_count']
-        blockheader_list.append(blockheader)
-        if jsonobj['height'] == 1:
-            break
+                # coinbase_tx = getCoinbaseTransactionInfo(mptr)
+                # print('CoinBase:')
+                # print(json.dumps(coinbase_tx, indent=4))
+                # tx = getTransactionInfo(mptr)
+                # print('Transaction:')
+                # print(json.dumps(tx, indent=4))
+
+                blockheader['height'] = jsonobj['height']
+                blockheader['tx_count'] = jsonobj['tx_count']
+                blockheader_list.append(blockheader)
+                if jsonobj['height'] == 1:
+                    break
+                # break
+
     df = pd.DataFrame(blockheader_list)
-    df.to_csv('out.csv', index=False)
+    df.to_csv('../output/blockheader_list.csv', index=False)
 
 
 if __name__ == '__main__':

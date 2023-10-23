@@ -1,7 +1,7 @@
 from TraverseBlockchain import getBlockIndex
-from lib.BitcoinHeaderFromHex import getBlockHeader
-from lib.CalculateBlockReward import getBlockReward
-from lib.BlockFileInfoFromBlockIndex import block_db_g
+from bitcoin.BitcoinHeaderFromHex import getBlockHeader
+from bitcoin.CalculateBlockReward import getBlockReward
+from bitcoin.BlockFileInfoFromBlockIndex import block_db_g
 from MiningProfitability import miningReturn, getBlockHeaderBytes, MINER_POWER_WATT, MINER_HASH_RATE
 
 if __name__ == '__main__':

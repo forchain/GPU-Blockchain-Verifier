@@ -1,4 +1,4 @@
-from lib.PrepareBlockHeaders import getPreviousBlockHash, calculateNextTargetThreshold, targetThreshold2bits
+from bitcoin.PrepareBlockHeaders import getPreviousBlockHash, calculateNextTargetThreshold, targetThreshold2bits
 
 if __name__ == '__main__':
     block_hash_b = getPreviousBlockHash()

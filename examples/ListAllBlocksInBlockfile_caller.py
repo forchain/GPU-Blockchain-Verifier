@@ -1,5 +1,5 @@
 import os
-from lib.BlockFileInfoFromBlockIndex import blocks_path_g, block_db_g, getBlockFileIndex
+from bitcoin.BlockFileInfoFromBlockIndex import blocks_path_g, block_db_g, getBlockFileIndex
 from ListAllBlocksInBlockfile import parseSerialisedBlock
 
 if __name__ == '__main__':

@@ -1,4 +1,4 @@
-from lib.ChainstateIndex import chainstate_db_g
+from bitcoin.ChainstateIndex import chainstate_db_g
 from UnspentTransaction import getUnspentTransactions
 
 if __name__ == '__main__':
