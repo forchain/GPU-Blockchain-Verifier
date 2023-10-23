@@ -8,7 +8,7 @@ Edit ~/.zshrc or ~/.bashrc
 export CHAINSTATE_DB=$HOME/.bitcoin/chainstate
 export BLOCK_INDEX_DB=$HOME/.bitcoin/blocks/index
 export BLOCKS_PATH=$HOME/.bitcoin/blocks
-export TX_INDEX_DB=$HOME/.bitcoin/
+export TX_INDEX_DB=$HOME/.bitcoin/indexes/txindex
 ```
 
 ### 2. Requirement
@@ -18,5 +18,5 @@ pip install
 
 ### 3. Run
 ```shell
-python cmd/main.py
+python examples/verify_blockchain.py
 ```
