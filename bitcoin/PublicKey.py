@@ -44,18 +44,6 @@ def getNetworkNCompression(wif_prefix: str):
     elif wif_prefix in WIF_PREFIX_TESTNET_UNCOMPRESSED:
         return 'testnet', False
 
-#def privkeyWif2Hex(privkey_wif: str):
-#    assert base58checkVerify(privkey_wif)
-#    wif_prefix = privkey_wif[0:1]
-#    network, compress = getNetworkNCompression(wif_prefix)
-#    privkey_b = base58checkDecode(privkey_wif)
-#    if compress == True:
-#        assert privkey_b[-1] == 0x01
-#        privkey_b = privkey_b[:-1]
-#    privkey_i = int.from_bytes(privkey_b, byteorder='big')
-#    privkey_s = '%064x' % privkey_i
-#    return privkey_s, network, compress
-
 def privkeyWif2Hex(privkey_wif: str):
     assert base58checkVerify(privkey_wif)
     wif_prefix = privkey_wif[0:1]
@@ -84,7 +72,6 @@ def privkeyHex2pubkey(privkey_s: str, compress: bool):
     sk = SigningKey.from_string(privkey_b, curve=SECP256k1) 
     vk = sk.get_verifying_key() 
     pubkey_b = b'\x04' + vk.to_string() 
-    print('uncompressed : %s' % pubkey_b.hex()) 
     if compress == True: 
         pubkey_b = compressPubkey(pubkey_b) 
     return pubkey_b 

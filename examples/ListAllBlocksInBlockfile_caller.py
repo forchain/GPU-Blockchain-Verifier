@@ -3,7 +3,8 @@ from bitcoin.BlockFileInfoFromBlockIndex import blocks_path_g, block_db_g, getBl
 from ListAllBlocksInBlockfile import parseSerialisedBlock
 
 if __name__ == '__main__':
-    n_file = 138
+    # n_file = 138
+    n_file = 2109
     block_filepath = os.path.join(blocks_path_g, 'blk%05d.dat' % n_file)
     block_f = open(block_filepath, 'rb')
     blk_index = getBlockFileIndex(n_file, block_db_g)

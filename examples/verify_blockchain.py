@@ -8,8 +8,8 @@ import mmap
 from bitcoin.BlockFileInfoFromBlockIndex import block_db_g, blocks_path_g
 from bitcoin.ChainstateIndex import getRecentBlockHash, chainstate_db_g
 from bitcoin.TraverseBlockchain import getBlockIndex, parseBlockHeader
-from bitcoin.CoinbaseTransaction import getCoinbaseTransactionInfo
-from bitcoin.BlockTransactions import getTransactionInfo
+from bitcoin.SegwitCoinbaseTransaction import getCoinbaseTransactionInfo
+from bitcoin.SegwitBlockTransaction  import getTransactionInfo
 
 
 def verify_blockchain() -> None:
@@ -33,19 +33,19 @@ def verify_blockchain() -> None:
                            flags=mmap.MAP_PRIVATE) as mptr:  # File is open read-only
                 blockheader, prev_blockhash_bigendian_b = parseBlockHeader(mptr, start, jsonobj['height'])
 
-                # coinbase_tx = getCoinbaseTransactionInfo(mptr)
-                # print('CoinBase:')
-                # print(json.dumps(coinbase_tx, indent=4))
-                # tx = getTransactionInfo(mptr)
-                # print('Transaction:')
-                # print(json.dumps(tx, indent=4))
+                coinbase_tx = getCoinbaseTransactionInfo(mptr)
+                print('CoinBase:')
+                print(json.dumps(coinbase_tx, indent=4))
+                tx = getTransactionInfo(mptr)
+                print('Transaction:')
+                print(json.dumps(tx, indent=4))
 
                 blockheader['height'] = jsonobj['height']
                 blockheader['tx_count'] = jsonobj['tx_count']
                 blockheader_list.append(blockheader)
                 if jsonobj['height'] == 1:
                     break
-                # break
+                break
 
     df = pd.DataFrame(blockheader_list)
     df.to_csv('../output/blockheader_list.csv', index=False)
