@@ -1,6 +1,6 @@
 import mmap
-from CoinbaseTransaction import getVarInt
-from PrivateKey import hash256
+from bitcoin.CoinbaseTransaction import getVarInt
+from bitcoin.PrivateKey import hash256
 
 def getCoinbaseTransactionInfo(txn_m: mmap):
     tx = {}

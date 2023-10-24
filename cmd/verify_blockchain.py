@@ -9,7 +9,7 @@ from bitcoin.BlockFileInfoFromBlockIndex import block_db_g, blocks_path_g
 from bitcoin.ChainstateIndex import getRecentBlockHash, chainstate_db_g
 from bitcoin.TraverseBlockchain import getBlockIndex, parseBlockHeader
 from bitcoin.SegwitCoinbaseTransaction import getCoinbaseTransactionInfo
-from bitcoin.SegwitBlockTransaction  import getTransactionInfo
+from bitcoin.SegwitBlockTransaction import getTransactionInfo
 
 
 def verify_blockchain() -> None:
