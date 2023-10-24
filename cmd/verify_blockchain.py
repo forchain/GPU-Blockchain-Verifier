@@ -10,6 +10,7 @@ from bitcoin.ChainstateIndex import getRecentBlockHash, chainstate_db_g
 from bitcoin.TraverseBlockchain import getBlockIndex, parseBlockHeader
 from bitcoin.SegwitCoinbaseTransaction import getCoinbaseTransactionInfo
 from bitcoin.SegwitBlockTransaction import getTransactionInfo
+from bitcoin.VerifyScript_P2PKH import verifyScript
 
 
 def verify_blockchain() -> None:
