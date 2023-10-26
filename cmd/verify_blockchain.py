@@ -41,6 +41,8 @@ def verify_blockchain() -> None:
                 print('Transaction:')
                 print(json.dumps(tx, indent=4))
 
+                verifyScript(tx, 1)
+
                 blockheader['height'] = jsonobj['height']
                 blockheader['tx_count'] = jsonobj['tx_count']
                 blockheader_list.append(blockheader)

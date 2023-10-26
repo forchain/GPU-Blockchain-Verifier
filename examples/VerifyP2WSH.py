@@ -1,6 +1,6 @@
-from VerifyScript_P2WSH import verifyScript
-from SegwitBlockTransaction import getTransactionInfo
-from VerifyScript_P2PKH import bytes2Mmap
+from bitcoin.VerifyScript_P2WSH import verifyScript
+from bitcoin.SegwitBlockTransaction import getTransactionInfo
+from bitcoin.VerifyScript_P2PKH import bytes2Mmap
 
 if __name__ == '__main__':
     #txid :: dffe1dc8f36cbc39c0f40b090912c5a00da13e3534f97aec0ef5bfe552019897

@@ -5,19 +5,23 @@ import ecdsa
 from bitcoin.ParseScriptSig import decodePushdata
 from bitcoin.FindTransactionInLevelDB import findTransaction
 from bitcoin.AddressGenerationPKH import hash160
+from bitcoin.FindTransactionInLevelDB import txindex_db_g
 from cryptotools.ECDSA.secp256k1 import PublicKey
 
 st = []
+
 
 def opHash160():
     v = st.pop()
     h = hash160(v)
     st.append(h)
 
+
 def opDup():
     v = st.pop()
     st.append(v)
     st.append(v)
+
 
 def opEqualVerify():
     v1 = st.pop()
@@ -27,16 +31,20 @@ def opEqualVerify():
     else:
         return False
 
+
 g_pushdata = range(0x01, 0x4f)
+
 
 def pushdata(d: bytes):
     st.append(d)
+
 
 def opCheckSig(script_b: bytes, inp_index: int, tx: dict):
     pubkey_b = st.pop()
     sig_b = st.pop()
     v = sigcheck(sig_b, pubkey_b, script_b, inp_index, tx)
     st.append(v)
+
 
 def execScript(script_b: bytes, inp_index: int, tx: dict):
     l = len(script_b)
@@ -58,6 +66,7 @@ def execScript(script_b: bytes, inp_index: int, tx: dict):
         elif v == b'\xac':
             opCheckSig(script_b, inp_index, tx)
 
+
 def getRandSFromSig(sig_b: bytes):
     sig_m = bytes2Mmap(sig_b)
     struct = sig_m.read(1)
@@ -76,11 +85,13 @@ def getRandSFromSig(sig_b: bytes):
     s = sig_m.read(32)
     return r + s
 
+
 def bytes2Mmap(b: bytes):
     m = mmap.mmap(-1, len(b) + 1)
     m.write(b)
     m.seek(0)
     return m
+
 
 def setVarInt(n: int):
     if n < 0xfd:
@@ -93,9 +104,10 @@ def setVarInt(n: int):
         n_h = 'ff%016x' % n
     return bytes.fromhex(n_h)
 
+
 def createMsgInputsForSig(tx: dict, script_b: bytes,
-                        inp_index: int, sighash_type: int,
-                        inp_cnt: int):
+                          inp_index: int, sighash_type: int,
+                          inp_cnt: int):
     msg_b = b''
     for i in range(inp_cnt):
         tx_inp = tx['inputs'][i]
@@ -104,12 +116,13 @@ def createMsgInputsForSig(tx: dict, script_b: bytes,
         if i == inp_index:
             inp_b += bytes.fromhex('%02x' % len(script_b))
             inp_b += script_b
-            inp_b += struct.pack('<L', tx_inp['sequence']) # sequence
+            inp_b += struct.pack('<L', tx_inp['sequence'])  # sequence
         else:
             inp_b += bytes(1)
-            inp_b += struct.pack('<L', tx_inp['sequence']) # sequence
+            inp_b += struct.pack('<L', tx_inp['sequence'])  # sequence
         msg_b += inp_b
     return msg_b
+
 
 def createMsgOutsForSig(tx: dict, inp_index: int, sighash_type: int):
     msg_b = b''
@@ -120,6 +133,7 @@ def createMsgOutsForSig(tx: dict, inp_index: int, sighash_type: int):
         msg_b += setVarInt(tx_out['bytes_scriptpubkey'])
         msg_b += bytes.fromhex(tx_out['scriptpubkey'])
     return msg_b
+
 
 def createMsgForSig(tx: dict, script_b: bytes, inp_index: int, sighash_type: int):
     global txindex_db_g
@@ -132,10 +146,12 @@ def createMsgForSig(tx: dict, script_b: bytes, inp_index: int, sighash_type: int
     msg_b += struct.pack('<L', sighash_type)
     return msg_b
 
+
 def uncompressPubkey(pubkey_b: bytes):
     pubkey_P = PublicKey.decode(pubkey_b)
     pubkey_b = PublicKey.encode(pubkey_P, compressed=False)
     return pubkey_b
+
 
 def sigcheck(sig_b: bytes, pubkey_b: bytes, script_b: bytes, inp_index: int, tx: dict):
     sighash_type = sig_b[-1]
@@ -159,8 +175,10 @@ def sigcheck(sig_b: bytes, pubkey_b: bytes, script_b: bytes, inp_index: int, tx:
         print("Signature is not Valid")
         return b'\x00'
 
+
 def getScriptSig(tx: dict, inp_index: int):
     return bytes.fromhex(tx['inputs'][inp_index]['scriptsig'])
+
 
 def getPrevScriptPubKey(tx: dict, inp_index: int):
     prevtx_rb = bytes.fromhex(tx['inputs'][inp_index]['prev_tx_hash'])[::-1]
@@ -169,6 +187,7 @@ def getPrevScriptPubKey(tx: dict, inp_index: int):
     prevScriptPubkey = prevtx['outs'][prevtx_outindex]['scriptpubkey']
     prevScriptPubkey_b = bytes.fromhex(prevScriptPubkey)
     return prevScriptPubkey_b
+
 
 def verifyScript(tx: dict, inp_index: int):
     scriptsig_b = getScriptSig(tx, inp_index)
@@ -182,4 +201,3 @@ def verifyScript(tx: dict, inp_index: int):
         print('1st Script Failed')
     else:
         print('1st Invalid state')
-

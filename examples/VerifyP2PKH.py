@@ -1,4 +1,4 @@
-from VerifyScript_P2PKH import verifyScript
+from bitcoin.VerifyScript_P2PKH import verifyScript
 from bitcoin.FindTransactionInLevelDB import findTransaction, txindex_db_g
 
 if __name__ == '__main__':
