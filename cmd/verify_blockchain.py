@@ -1,16 +1,16 @@
-# sys.path.append("bitcoin")
-
 import json
 import os
 import pandas as pd
 import mmap
+import sys
+# sys.path.append("..")
 
 from bitcoin.BlockFileInfoFromBlockIndex import block_db_g, blocks_path_g
 from bitcoin.ChainstateIndex import getRecentBlockHash, chainstate_db_g
 from bitcoin.TraverseBlockchain import getBlockIndex, parseBlockHeader
 from bitcoin.SegwitCoinbaseTransaction import getCoinbaseTransactionInfo
 from bitcoin.SegwitBlockTransaction import getTransactionInfo
-from bitcoin.VerifyScript_P2PKH import verifyScript
+from bitcoin.VerifyScript_P2SH_P2WSH import verifyScript
 
 
 def verify_blockchain() -> None:
@@ -41,10 +41,13 @@ def verify_blockchain() -> None:
                 print('Transaction:')
                 print(json.dumps(tx, indent=4))
 
-                verifyScript(tx, 1)
-
                 blockheader['height'] = jsonobj['height']
                 blockheader['tx_count'] = jsonobj['tx_count']
+
+                for i in range(tx['inp_cnt']):
+                    print(f'{i}-------------')
+                    verifyScript(tx, i)
+                    print(f'-------------{i}')
                 blockheader_list.append(blockheader)
                 if jsonobj['height'] == 1:
                     break

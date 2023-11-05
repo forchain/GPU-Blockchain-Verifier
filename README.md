@@ -13,7 +13,7 @@ export TX_INDEX_DB=$HOME/.bitcoin/indexes/txindex
 
 ### 2. Requirement
 ```shell
-pip install
+pip install ecdsa, cryptotools
 ```
 
 ### 3. Run

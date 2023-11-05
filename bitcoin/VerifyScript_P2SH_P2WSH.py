@@ -2,11 +2,13 @@ import json
 import struct
 import hashlib
 import ecdsa
-from VerifyScript_P2PKH import getScriptSig, bytes2Mmap, \
-        decodePushdata, pushdata
-from FindTransactionInLevelDB import findTransaction, txindex_db_g
-from AddressGenerationPKH import hash256, hash160
+from bitcoin.VerifyScript_P2PKH import createMsgForSig
+from bitcoin.VerifyScript_P2PKH import getScriptSig, bytes2Mmap, \
+    decodePushdata, pushdata
+from bitcoin.FindTransactionInLevelDB import findTransaction, txindex_db_g
+from bitcoin.AddressGenerationPKH import hash256, hash160
 from cryptotools.ECDSA.secp256k1 import PublicKey, PrivateKey, Point, G, P, N, CURVE
+
 
 def setVarInt(n: int):
     if n < 0xfd:
@@ -18,6 +20,7 @@ def setVarInt(n: int):
     else:
         n_h = 'ff%016x' % n
     return bytes.fromhex(n_h)
+
 
 def getRandSFromSig(sig_b: bytes):
     sig_m = bytes2Mmap(sig_b)
@@ -37,12 +40,14 @@ def getRandSFromSig(sig_b: bytes):
     s = sig_m.read(32)
     return r + s
 
+
 def getAmountFromPrevout(prev_tx_hash_b: bytes, prev_tx_out_index_b: bytes):
     prevtx = findTransaction(prev_tx_hash_b, txindex_db_g)
-    prevtx_outindex = int.from_bytes(prev_tx_out_index_b, byteorder = 'little')
+    prevtx_outindex = int.from_bytes(prev_tx_out_index_b, byteorder='little')
     prevAmount = prevtx['outs'][prevtx_outindex]['satoshis']
     amount_b = struct.pack("<Q", prevAmount)
     return amount_b
+
 
 def createMsgForSigForSegwit(tx: dict, script_b: bytes, inp_index: int, sighash_type: int):
     version_b = bytes.fromhex(tx['version'])[::-1]
@@ -77,39 +82,49 @@ def createMsgForSigForSegwit(tx: dict, script_b: bytes, inp_index: int, sighash_
     msg_b = version_b + hashPrevouts_b + hashSequence_b + outpoint_b + scriptCode_b + amount_b + sequence_b + hashOutputs_b + locktime_b + hashType_b
     return msg_b
 
+
 def uncompressPubkey(pubkey_b: bytes):
     pubkey_P = PublicKey.decode(pubkey_b)
     pubkey_b = PublicKey.encode(pubkey_P, compressed=False)
     return pubkey_b
 
-def sigcheck(sig_b: bytes, pubkey_b: bytes,  
-            script_b: bytes, inp_index: int, tx: dict): 
-    sighash_type = sig_b[-1] 
-    if tx['is_segwit'] == True: 
-        msg_b = createMsgForSigForSegwit(tx, script_b, inp_index, sighash_type) 
-    else: 
-        msg_b = createMsgForSig(tx, script_b, inp_index, sighash_type) 
-    print('sig = %s' % sig_b.hex()) 
-    print('pubkey = %s' % pubkey_b.hex()) 
-    print('msg = %s' % msg_b.hex()) 
-    msg_h = hashlib.sha256(msg_b).digest()
-    print('msg_h = %s' % msg_h.hex()) 
-    prefix = pubkey_b[0:1] 
-    if prefix == b"\x02" or prefix == b"\x03": 
-        fullpubkey_b = uncompressPubkey(pubkey_b)[1:] 
-    elif prefix == b"\x04": 
-        fullpubkey_b = pubkey_b[1:] 
-    rs_b = getRandSFromSig(sig_b) 
-    print('rs = %s' % rs_b.hex()) 
-    vk = ecdsa.VerifyingKey.from_string(fullpubkey_b, curve=ecdsa.SECP256k1) 
-    if vk.verify(rs_b, msg_h, hashlib.sha256) == True: 
-        print("Signature is Valid") 
-        return b'\x01' 
-    else: 
-        print("XXXXXXSignature is not Valid") 
-        return b'\x00' 
 
-g_pushnumber = range(0x51, 0x61) # excludes 0x61
+def sigcheck(sig_b: bytes, pubkey_b: bytes,
+             script_b: bytes, inp_index: int, tx: dict):
+    sighash_type = sig_b[-1]
+    # Wrong! Not necessary every input TX is witness in SegWit Tx
+    # if tx['is_segwit'] == True:
+    #     msg_b = createMsgForSigForSegwit(tx, script_b, inp_index, sighash_type)
+    # else:
+    #     msg_b = createMsgForSig(tx, script_b, inp_index, sighash_type)
+    #  tx['inputs'][i]['witness_cnt'] = getVarInt(txn_m)
+    if tx['is_segwit'] == True and tx['inputs'][inp_index]['witness_cnt'] > 0:
+        msg_b = createMsgForSigForSegwit(tx, script_b, inp_index, sighash_type)
+    else:
+        msg_b = createMsgForSig(tx, script_b, inp_index, sighash_type)
+    print('sig = %s' % sig_b.hex())
+    print('pubkey = %s' % pubkey_b.hex())
+    print('msg = %s' % msg_b.hex())
+    msg_h = hashlib.sha256(msg_b).digest()
+    print('msg_h = %s' % msg_h.hex())
+    prefix = pubkey_b[0:1]
+    if prefix == b"\x02" or prefix == b"\x03":
+        fullpubkey_b = uncompressPubkey(pubkey_b)[1:]
+    elif prefix == b"\x04":
+        fullpubkey_b = pubkey_b[1:]
+    rs_b = getRandSFromSig(sig_b)
+    print('rs = %s' % rs_b.hex())
+    vk = ecdsa.VerifyingKey.from_string(fullpubkey_b, curve=ecdsa.SECP256k1)
+    if vk.verify(rs_b, msg_h, hashlib.sha256) == True:
+        print("Signature is Valid")
+        return b'\x01'
+    else:
+        print("XXXXXXSignature is not Valid")
+        return b'\x00'
+
+
+g_pushnumber = range(0x51, 0x61)  # excludes 0x61
+
 
 def opEqual():
     v1 = st.pop()
@@ -119,21 +134,26 @@ def opEqual():
     else:
         st.append(b'\x00')
 
+
 def opNum(b: int):
     num = b - 0x50
     st.append(bytes([num]))
 
+
 st = []
+
 
 def opHash160():
     v = st.pop()
     h = hash160(v)
     st.append(h)
 
+
 def opDup():
     v = st.pop()
     st.append(v)
     st.append(v)
+
 
 def opEqualVerify():
     v1 = st.pop()
@@ -143,16 +163,20 @@ def opEqualVerify():
     else:
         return False
 
+
 g_pushdata = range(0x01, 0x4f)
+
 
 def pushdata(d: bytes):
     st.append(d)
+
 
 def opCheckSig(script_b: bytes, inp_index: int, tx: dict):
     pubkey_b = st.pop()
     sig_b = st.pop()
     v = sigcheck(sig_b, pubkey_b, script_b, inp_index, tx)
     st.append(v)
+
 
 def opCheckMultisig(script_b: bytes, inp_index: int, tx: dict):
     pubkey_cnt = int.from_bytes(st.pop(), byteorder='little')
@@ -170,51 +194,60 @@ def opCheckMultisig(script_b: bytes, inp_index: int, tx: dict):
     b = bytes([int(sig_index == sig_cnt and v == b'\x01')])
     st.append(b)
 
-def pushWitnessData(witness_l: list): 
-    for data in witness_l: 
-        st.append(bytes.fromhex(data['witness'])) 
 
-def getWitnessList(tx: dict, inp_index: int): 
-    return tx['inputs'][inp_index]['witnesses'] 
+def pushWitnessData(witness_l: list):
+    for data in witness_l:
+        st.append(bytes.fromhex(data['witness']))
 
-def checkWrappedMultisig(st): 
-    script_b = st[-1] 
-    val = script_b[-2] 
-    if bytes([script_b[-1]]) == b'\xae' and val in g_pushnumber: 
-        return True 
-    else: 
-        return False 
 
-def checkWrappedP2WPKH(st): 
-    script_b = st[-1] 
-    if script_b[:2] == b'\x00\x14' and len(script_b) == 22: 
-        return True 
-    else: 
-        return False 
+def getWitnessList(tx: dict, inp_index: int):
+    return tx['inputs'][inp_index]['witnesses']
+
+
+def checkWrappedMultisig(st):
+    script_b = st[-1]
+    val = script_b[-2]
+    if bytes([script_b[-1]]) == b'\xae' and val in g_pushnumber:
+        return True
+    else:
+        return False
+
+
+def checkWrappedP2WPKH(st):
+    script_b = st[-1]
+    if script_b[:2] == b'\x00\x14' and len(script_b) == 22:
+        return True
+    else:
+        return False
+
 
 def checkWrappedP2WSH(st):
-    script_b = st[-1] 
-    if script_b[:2] == b'\x00\x20' and len(script_b) == 34: 
-        return True 
-    else: 
-        return False 
+    script_b = st[-1]
+    if script_b[:2] == b'\x00\x20' and len(script_b) == 34:
+        return True
+    else:
+        return False
 
-def isP2WPKH(prev_scriptpubkey_b: bytes): 
-    #0014<20 bytes> 
-    if len(prev_scriptpubkey_b) == 22 and prev_scriptpubkey_b[0:2] == b'\x00\x14': 
-        return True 
-    return False 
+
+def isP2WPKH(prev_scriptpubkey_b: bytes):
+    # 0014<20 bytes>
+    if len(prev_scriptpubkey_b) == 22 and prev_scriptpubkey_b[0:2] == b'\x00\x14':
+        return True
+    return False
+
 
 def isP2WSH(prev_scriptpubkey_b: bytes):
-    #0020<32 bytes>
+    # 0020<32 bytes>
     if len(prev_scriptpubkey_b) == 34 and prev_scriptpubkey_b[0:2] == b'\x00\x20':
         return True
     return False
+
 
 def opSha256():
     v = st.pop()
     h = hashlib.sha256(v).digest()
     st.append(h)
+
 
 def execScript(script_b: bytes, inp_index: int, tx: dict):
     l = len(script_b)
@@ -244,6 +277,7 @@ def execScript(script_b: bytes, inp_index: int, tx: dict):
         elif v == b'\xae':
             opCheckMultisig(script_b, inp_index, tx)
 
+
 def getPrevScriptPubKey(tx: dict, inp_index: int):
     prevtx_rb = bytes.fromhex(tx['inputs'][inp_index]['prev_tx_hash'])[::-1]
     prevtx_outindex = tx['inputs'][inp_index]['prev_tx_out_index']
@@ -251,6 +285,7 @@ def getPrevScriptPubKey(tx: dict, inp_index: int):
     prevScriptPubkey = prevtx['outs'][prevtx_outindex]['scriptpubkey']
     prevScriptPubkey_b = bytes.fromhex(prevScriptPubkey)
     return prevScriptPubkey_b
+
 
 def verifyScript(tx: dict, inp_index: int):
     scriptsig_b = getScriptSig(tx, inp_index)

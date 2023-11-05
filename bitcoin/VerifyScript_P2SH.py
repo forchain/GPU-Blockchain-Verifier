@@ -1,4 +1,4 @@
-from VerifyScript_P2PKH import getScriptSig, bytes2Mmap, decodePushdata, pushdata, getPrevScriptPubKey, st, opHash160, sigcheck
+from bitcoin.VerifyScript_P2PKH import getScriptSig, bytes2Mmap, decodePushdata, pushdata, getPrevScriptPubKey, st, opHash160, sigcheck
 
 g_pushnumber = range(0x51, 0x61) # excludes 0x61
 
@@ -30,41 +30,41 @@ def opCheckMultisig(script_b: bytes, inp_index: int, tx: dict):
     b = bytes([int(sig_index == sig_cnt and v == b'\x01')])
     st.append(b)
 
-def checkWrappedMultisig(st): 
-    script_b = st[-1] 
-    val = script_b[-2] 
-    if bytes([script_b[-1]]) == b'\xae' and val in g_pushnumber: 
-        return True 
-    else: 
-        return False 
+def checkWrappedMultisig(st):
+    script_b = st[-1]
+    val = script_b[-2]
+    if bytes([script_b[-1]]) == b'\xae' and val in g_pushnumber:
+        return True
+    else:
+        return False
 
-def execScript(script_b: bytes, inp_index: int, tx: dict): 
-    l = len(script_b) 
-    script_m = bytes2Mmap(script_b) 
-    while script_m.tell() < l: 
-        v = script_m.read(1) 
-        b = int.from_bytes(v, byteorder='little') 
-        if b == 0x00: 
-            pass 
-        elif b < 0x4f: 
-            script_m.seek(-1, 1) 
-            b = decodePushdata(script_m) 
-            d = script_m.read(b) 
-            pushdata(d) 
-        elif v == b'\x76': 
-            opDup() 
-        elif v == b'\xa9': 
-            opHash160() 
-        elif b in g_pushnumber: 
-            opNum(b) 
-        elif v == b'\x87': 
-            opEqual() 
-        elif v == b'\x88': 
-            opEqualVerify() 
-        elif v == b'\xac': 
-            opCheckSig(script_b, inp_index, tx) 
-        elif v == b'\xae': 
-            opCheckMultisig(script_b, inp_index, tx) 
+def execScript(script_b: bytes, inp_index: int, tx: dict):
+    l = len(script_b)
+    script_m = bytes2Mmap(script_b)
+    while script_m.tell() < l:
+        v = script_m.read(1)
+        b = int.from_bytes(v, byteorder='little')
+        if b == 0x00:
+            pass
+        elif b < 0x4f:
+            script_m.seek(-1, 1)
+            b = decodePushdata(script_m)
+            d = script_m.read(b)
+            pushdata(d)
+        elif v == b'\x76':
+            opDup()
+        elif v == b'\xa9':
+            opHash160()
+        elif b in g_pushnumber:
+            opNum(b)
+        elif v == b'\x87':
+            opEqual()
+        elif v == b'\x88':
+            opEqualVerify()
+        elif v == b'\xac':
+            opCheckSig(script_b, inp_index, tx)
+        elif v == b'\xae':
+            opCheckMultisig(script_b, inp_index, tx)
 
 def verifyScript(tx: dict, inp_index: int):
     maybeP2SH = False
