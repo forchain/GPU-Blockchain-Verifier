@@ -1,6 +1,9 @@
 import mmap
 from bitcoin.PrivateKey import hash256
 from bitcoin.CoinbaseTransaction import getVarInt
+import json
+import sys
+
 
 def getTransactionInfo(txn_m: mmap):
     tx = {}
@@ -17,11 +20,16 @@ def getTransactionInfo(txn_m: mmap):
     for i in range(tx['inp_cnt']):
         inp = {}
         inp['prev_tx_hash'] = txn_m.read(32)[::-1].hex()
-#        inp['prev_tx_out_index'] = txn_m.read(4)[::-1].hex()
+        #        inp['prev_tx_out_index'] = txn_m.read(4)[::-1].hex()
         inp['prev_tx_out_index'] = int.from_bytes(txn_m.read(4), byteorder='little')
         inp['bytes_scriptsig'] = getVarInt(txn_m)
-        inp['scriptsig'] = txn_m.read(inp['bytes_scriptsig']).hex()
-#        inp['sequence'] = txn_m.read(4)[::-1].hex()
+        try:
+            inp['scriptsig'] = txn_m.read(inp['bytes_scriptsig']).hex()
+        except OverflowError:
+            print(json.dumps(tx, indent=4))
+            sys.exit()
+
+        #        inp['sequence'] = txn_m.read(4)[::-1].hex()
         inp['sequence'] = int.from_bytes(txn_m.read(4), byteorder='little')
         inp_l.append(inp)
     tx['inputs'] = inp_l

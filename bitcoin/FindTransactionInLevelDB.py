@@ -16,13 +16,13 @@ def getTransactionIndex(tx_hash: bytes, txindex_db):
     jsonobj['n_file'], pos = b128_varint_decode(value)
     jsonobj['block_offset'], pos = b128_varint_decode(value, pos)
     jsonobj['file_offset'], pos = b128_varint_decode(value, pos)
-    print(jsonobj)
+    # print(jsonobj)
     return jsonobj
 
 def findTransaction(tx_hash: bytes, txindex_db):
     jsonobj = getTransactionIndex(tx_hash, txindex_db)
-    print('Transaction Index:')
-    print(json.dumps(jsonobj, indent=4))
+    # print('Transaction Index:')
+    # print(json.dumps(jsonobj, indent=4))
     block_filepath = os.path.join(blocks_path_g, 'blk%05d.dat' % jsonobj['n_file'])
     with open(block_filepath, 'r+b') as blk_f:
         blk_m = mmap.mmap(blk_f.fileno(), 0) # map whole file

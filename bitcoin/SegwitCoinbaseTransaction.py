@@ -57,7 +57,7 @@ def getCoinbaseTransactionInfo(txn_m: mmap):
             tx['inputs'][i]['witnesses'] = witness_l
     locktime_b = txn_m.read(4)
     txid_b += locktime_b
-    print(txid_b.hex())
+    # print(txid_b.hex())
     tx['locktime'] = int.from_bytes(locktime_b, byteorder='little')
     tx['txid'] = hash256(txid_b)[::-1].hex()
     return tx

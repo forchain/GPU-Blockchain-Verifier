@@ -2,6 +2,8 @@ import json
 import struct
 import hashlib
 import ecdsa
+import os
+import csv
 from bitcoin.VerifyScript_P2PKH import createMsgForSig
 from bitcoin.VerifyScript_P2PKH import getScriptSig, bytes2Mmap, \
     decodePushdata, pushdata
@@ -62,7 +64,7 @@ def createMsgForSigForSegwit(tx: dict, script_b: bytes, inp_index: int, sighash_
         prevouts_b += prev_tx_hash_b + prev_tx_out_index_b
         if i == inp_index:
             outpoint_b = prev_tx_hash_b + prev_tx_out_index_b
-            print('script = ', script_b.hex())
+            # print('script = ', script_b.hex())
             scriptCode_b = bytes.fromhex('%x' % len(script_b)) + script_b
             amount_b = getAmountFromPrevout(prev_tx_hash_b, prev_tx_out_index_b)
             sequence_b = struct.pack('<L', tx_inp['sequence'])
@@ -89,6 +91,30 @@ def uncompressPubkey(pubkey_b: bytes):
     return pubkey_b
 
 
+g_signature_set = set()
+g_signature_file = '../output/signature_data.csv'
+
+
+def initialize_saved_signature():
+    if not g_signature_set:  # 如果saved_verification为空
+        if not os.path.exists(g_signature_file):  # 检查文件是否存在
+            # 创建文件并写入表头
+            with open(g_signature_file, 'w', newline='') as csvfile:
+                csvwriter = csv.writer(csvfile)
+                csvwriter.writerow(['msg', 'pubkey', 'sig'])
+        else:
+            # 读取文件中的msg列
+            with open(g_signature_file, 'r', newline='') as csvfile:
+                csvreader = csv.reader(csvfile)
+                next(csvreader, None)  # 跳过表头
+                for row in csvreader:
+                    if row:  # 确保行不是空的
+                        g_signature_set.add(row[0])  # 添加msg到集合中
+
+
+initialize_saved_signature()  # 初始化saved_verification
+
+
 def sigcheck(sig_b: bytes, pubkey_b: bytes,
              script_b: bytes, inp_index: int, tx: dict):
     sighash_type = sig_b[-1]
@@ -102,25 +128,38 @@ def sigcheck(sig_b: bytes, pubkey_b: bytes,
         msg_b = createMsgForSigForSegwit(tx, script_b, inp_index, sighash_type)
     else:
         msg_b = createMsgForSig(tx, script_b, inp_index, sighash_type)
-    print('sig = %s' % sig_b.hex())
-    print('pubkey = %s' % pubkey_b.hex())
-    print('msg = %s' % msg_b.hex())
     msg_h = hashlib.sha256(msg_b).digest()
-    print('msg_h = %s' % msg_h.hex())
     prefix = pubkey_b[0:1]
     if prefix == b"\x02" or prefix == b"\x03":
         fullpubkey_b = uncompressPubkey(pubkey_b)[1:]
     elif prefix == b"\x04":
         fullpubkey_b = pubkey_b[1:]
     rs_b = getRandSFromSig(sig_b)
-    print('rs = %s' % rs_b.hex())
+    # print('sig = %s' % sig_b.hex())
+    # print('pubkey = %s' % pubkey_b.hex())
+    # print('msg = %s' % msg_b.hex())
+    # print('msg_h = %s' % msg_h.hex())
+    # print('rs = %s' % rs_b.hex())
     vk = ecdsa.VerifyingKey.from_string(fullpubkey_b, curve=ecdsa.SECP256k1)
-    if vk.verify(rs_b, msg_h, hashlib.sha256) == True:
-        print("Signature is Valid")
-        return b'\x01'
-    else:
-        print("XXXXXXSignature is not Valid")
-        return b'\x00'
+    try:
+        if vk.verify(rs_b, msg_h, hashlib.sha256):
+            result = b'\x01'
+        else:
+            print(f"Signature verification failed, {tx['txid']}, {inp_index}")
+            result = b'\x00'
+    except ecdsa.BadSignatureError:
+        print(f"Signature is not Valid, {tx['txid']}, {inp_index}")
+        result = b'\x00'
+
+    # 检查msg_h是否已经保存，如果没有，则写入CSV文件
+    hex_msg_h = msg_h.hex()
+    if hex_msg_h not in g_signature_set:
+        with open(g_signature_file, 'a', newline='') as csvfile:
+            csvwriter = csv.writer(csvfile)
+            csvwriter.writerow([hex_msg_h, fullpubkey_b.hex(), rs_b.hex()])
+        g_signature_set.add(hex_msg_h)
+
+    return result
 
 
 g_pushnumber = range(0x51, 0x61)  # excludes 0x61
@@ -291,7 +330,7 @@ def verifyScript(tx: dict, inp_index: int):
     scriptsig_b = getScriptSig(tx, inp_index)
     if scriptsig_b == b'':
         # native segwit
-        print('native segwit')
+        # print('native segwit')
         witness_l = getWitnessList(tx, inp_index)
         pushWitnessData(witness_l)
     else:
@@ -303,40 +342,48 @@ def verifyScript(tx: dict, inp_index: int):
         st.pop()
         witness_l = getWitnessList(tx, inp_index)
         pushWitnessData(witness_l)
-        print('P2SH_P2WPKH')
+        # print('P2SH_P2WPKH')
     if checkWrappedP2WSH(st) == True:
         prev_scriptpubkey_b = st[-1]
         st.pop()
         witness_l = getWitnessList(tx, inp_index)
         pushWitnessData(witness_l)
-        print('P2SH_P2WSH')
+        # print('P2SH_P2WSH')
     if checkWrappedMultisig(st) == True:
         redeemscript_b = st[-1]
         isP2SH = True
-        print('P2SH')
+        # print('P2SH')
     if isP2WPKH(prev_scriptpubkey_b) == True:
-        print('P2WPKH')
+        # print('P2WPKH')
         prev_scriptpubkey_b = bytes([0x76, 0xa9, 0x14]) + prev_scriptpubkey_b[2:] + bytes([0x88, 0xac])
     if isP2WSH(prev_scriptpubkey_b) == True:
-        print('P2WSH')
+        # print('P2WSH')
         prev_scriptpubkey_b = bytes([0xa8, 0x20]) + prev_scriptpubkey_b[2:] + bytes([0x87])
-    print('previous scriptpubkey = ', prev_scriptpubkey_b.hex())
+    # print('previous scriptpubkey = ', prev_scriptpubkey_b.hex())
     execScript(prev_scriptpubkey_b, inp_index, tx)
     status = st.pop()
-    if status == b'\x01':
-        print('1st Script succeeded')
+
+    ret = False
+    if status == b'\x00':
+        print(f'1st Script Failed, txid: {tx["txid"]} inp_index: {inp_index}')
+        return False
     elif status == b'\x01':
-        print('1st Script Failed')
-        return
+        # print(f'1st Script succeeded, txid: {tx["txid"]} inp_index: {inp_index}')
+        ret = True
     else:
-        print('1st Invalid state')
-        return
+        print(f'1st Invalid state, txid: {tx["txid"]} inp_index: {inp_index} status: {status}')
+        return False
     if isP2SH == True:
         execScript(redeemscript_b, inp_index, tx)
         status = st.pop()
-        if status == b'\x01':
-            print('2nd Script succeeded')
+        if status == b'\x00':
+            print(f'2nd Script Failed, txid: {tx["txid"]} inp_index: {inp_index}')
+            return False
         elif status == b'\x01':
-            print('2nd Script Failed')
+            # print(f'2nd Script succeeded, txid: {tx["txid"]} inp_index: {inp_index}')
+            ret = True
         else:
-            print('2nd Invalid state')
+            print(f'2nd Invalid state, txid: {tx["txid"]} inp_index: {inp_index} status: {status}')
+            return False
+
+    return ret

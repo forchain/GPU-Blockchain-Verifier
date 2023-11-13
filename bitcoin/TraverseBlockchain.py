@@ -59,6 +59,9 @@ def parseBlockHeader(mptr: mmap, start: int, height: int):
 #    block_header['nonce'] = int.from_bytes(mptr.read(4), byteorder='little')
     block_header['nonce'] = mptr.read(4)[::-1].hex()
     txcount = getTransactionCount(mptr)
+
+    block_header['height'] = height
+    block_header['tx_count'] = txcount
     return block_header, prev_block_header_hash
 
 #def parseBlockHeader(mptr: mmap, start: int, height: int):
@@ -97,8 +100,8 @@ def traverseBlockChain():
         with open(block_filepath, 'rb') as block_file:
             with mmap.mmap(block_file.fileno(), 0, prot = mmap.PROT_READ, flags = mmap.MAP_PRIVATE) as mptr: #File is open read-only
                 blockheader, prev_blockhash_bigendian_b = parseBlockHeader(mptr, start, jsonobj['height'])
-        blockheader['height'] = jsonobj['height']
-        blockheader['tx_count'] = jsonobj['tx_count']
+        # blockheader['height'] = jsonobj['height']
+        # blockheader['tx_count'] = jsonobj['tx_count']
         blockheader_list.append(blockheader)
         if jsonobj['height'] == 1:
             break
