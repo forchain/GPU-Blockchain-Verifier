@@ -49,8 +49,8 @@ def parseBlockHeader(mptr: mmap, start: int, height: int):
     block_header['magic_number'] = int.from_bytes(mptr.read(4), byteorder='little')
     block_header['block_size'] = int.from_bytes(mptr.read(4), byteorder='little')
     block_header['version'] = int.from_bytes(mptr.read(4), byteorder='little')
-    prev_block_header_hash = mptr.read(32)
-    block_header['prev_block_hash'] = prev_block_header_hash[::-1].hex()
+    prev_blockhash_bigendian_b = mptr.read(32)
+    block_header['prev_block_hash'] = prev_blockhash_bigendian_b[::-1].hex()
     block_header['merkle_tree_root'] = mptr.read(32)[::-1].hex()
     block_header['timestamp'] = int.from_bytes(mptr.read(4), byteorder='little')
     block_header['date_time'] = datetime.datetime.fromtimestamp(block_header['timestamp']).strftime('%Y-%m-%d %H:%M:%S')
@@ -62,7 +62,7 @@ def parseBlockHeader(mptr: mmap, start: int, height: int):
 
     block_header['height'] = height
     block_header['tx_count'] = txcount
-    return block_header, prev_block_header_hash
+    return block_header, prev_blockhash_bigendian_b
 
 #def parseBlockHeader(mptr: mmap, start: int, height: int):
 #    ret = False

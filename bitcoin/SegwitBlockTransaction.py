@@ -26,8 +26,9 @@ def getTransactionInfo(txn_m: mmap):
         try:
             inp['scriptsig'] = txn_m.read(inp['bytes_scriptsig']).hex()
         except OverflowError:
-            print(json.dumps(tx, indent=4))
-            sys.exit()
+            # print(f'getTransactionInfo OverflowError, {json.dumps(tx, indent=4)}')
+            # sys.exit()
+            return None
 
         #        inp['sequence'] = txn_m.read(4)[::-1].hex()
         inp['sequence'] = int.from_bytes(txn_m.read(4), byteorder='little')

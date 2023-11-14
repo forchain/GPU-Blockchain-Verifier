@@ -145,19 +145,23 @@ def sigcheck(sig_b: bytes, pubkey_b: bytes,
         if vk.verify(rs_b, msg_h, hashlib.sha256):
             result = b'\x01'
         else:
-            print(f"Signature verification failed, {tx['txid']}, {inp_index}")
+            # print(f"Signature verification failed, {tx['txid']}, {inp_index}")
             result = b'\x00'
     except ecdsa.BadSignatureError:
-        print(f"Signature is not Valid, {tx['txid']}, {inp_index}")
+        # print(f"Signature is not Valid, {tx['txid']}, {inp_index}")
         result = b'\x00'
 
     # 检查msg_h是否已经保存，如果没有，则写入CSV文件
     hex_msg_h = msg_h.hex()
-    if hex_msg_h not in g_signature_set:
+    hex_rs = rs_b.hex()
+    hex_pubkey = fullpubkey_b.hex()
+    if hex_rs not in g_signature_set:
         with open(g_signature_file, 'a', newline='') as csvfile:
             csvwriter = csv.writer(csvfile)
-            csvwriter.writerow([hex_msg_h, fullpubkey_b.hex(), rs_b.hex()])
-        g_signature_set.add(hex_msg_h)
+            csvwriter.writerow([hex_rs, hex_pubkey, hex_msg_h])
+        g_signature_set.add(hex_rs)
+    # else:
+    #     pass
 
     return result
 
@@ -365,25 +369,25 @@ def verifyScript(tx: dict, inp_index: int):
 
     ret = False
     if status == b'\x00':
-        print(f'1st Script Failed, txid: {tx["txid"]} inp_index: {inp_index}')
+        # print(f'1st Script Failed, txid: {tx["txid"]} inp_index: {inp_index}')
         return False
     elif status == b'\x01':
         # print(f'1st Script succeeded, txid: {tx["txid"]} inp_index: {inp_index}')
         ret = True
     else:
-        print(f'1st Invalid state, txid: {tx["txid"]} inp_index: {inp_index} status: {status}')
+        # print(f'1st Invalid state, txid: {tx["txid"]} inp_index: {inp_index} status: {status}')
         return False
     if isP2SH == True:
         execScript(redeemscript_b, inp_index, tx)
         status = st.pop()
         if status == b'\x00':
-            print(f'2nd Script Failed, txid: {tx["txid"]} inp_index: {inp_index}')
+            # print(f'2nd Script Failed, txid: {tx["txid"]} inp_index: {inp_index}')
             return False
         elif status == b'\x01':
             # print(f'2nd Script succeeded, txid: {tx["txid"]} inp_index: {inp_index}')
             ret = True
         else:
-            print(f'2nd Invalid state, txid: {tx["txid"]} inp_index: {inp_index} status: {status}')
+            # print(f'2nd Invalid state, txid: {tx["txid"]} inp_index: {inp_index} status: {status}')
             return False
 
     return ret
