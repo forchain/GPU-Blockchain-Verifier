@@ -91,28 +91,6 @@ def uncompressPubkey(pubkey_b: bytes):
     return pubkey_b
 
 
-g_signature_set = set()
-g_signature_file = '../output/signature_data.csv'
-
-
-def initialize_saved_signature():
-    if not g_signature_set:  # 如果saved_verification为空
-        if not os.path.exists(g_signature_file):  # 检查文件是否存在
-            # 创建文件并写入表头
-            with open(g_signature_file, 'w', newline='') as csvfile:
-                csvwriter = csv.writer(csvfile)
-                csvwriter.writerow(['msg', 'pubkey', 'sig'])
-        else:
-            # 读取文件中的msg列
-            with open(g_signature_file, 'r', newline='') as csvfile:
-                csvreader = csv.reader(csvfile)
-                next(csvreader, None)  # 跳过表头
-                for row in csvreader:
-                    if row:  # 确保行不是空的
-                        g_signature_set.add(row[0])  # 添加msg到集合中
-
-
-initialize_saved_signature()  # 初始化saved_verification
 
 
 def sigcheck(sig_b: bytes, pubkey_b: bytes,
@@ -155,13 +133,10 @@ def sigcheck(sig_b: bytes, pubkey_b: bytes,
     hex_msg_h = msg_h.hex()
     hex_rs = rs_b.hex()
     hex_pubkey = fullpubkey_b.hex()
-    if hex_rs not in g_signature_set:
-        with open(g_signature_file, 'a', newline='') as csvfile:
-            csvwriter = csv.writer(csvfile)
-            csvwriter.writerow([hex_rs, hex_pubkey, hex_msg_h])
-        g_signature_set.add(hex_rs)
-    # else:
-    #     pass
+    signature_file = '../output/signature_data.csv'
+    with open(signature_file, 'a', newline='') as csvfile:
+        csvwriter = csv.writer(csvfile)
+        csvwriter.writerow([hex_rs, hex_pubkey, hex_msg_h])
 
     return result
 
@@ -244,7 +219,11 @@ def pushWitnessData(witness_l: list):
 
 
 def getWitnessList(tx: dict, inp_index: int):
-    return tx['inputs'][inp_index]['witnesses']
+    inp = tx['inputs'][inp_index]
+    if 'witnesses' not in inp:
+        print(f'[getWitnessList]witnesses not in input. tx: {tx["txid"]} inp_index: {inp_index}')
+        return None
+    return inp['witnesses']
 
 
 def checkWrappedMultisig(st):
@@ -336,6 +315,8 @@ def verifyScript(tx: dict, inp_index: int):
         # native segwit
         # print('native segwit')
         witness_l = getWitnessList(tx, inp_index)
+        if not witness_l:
+            return False
         pushWitnessData(witness_l)
     else:
         execScript(scriptsig_b, inp_index, tx)
