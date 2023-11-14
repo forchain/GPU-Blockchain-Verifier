@@ -3,6 +3,7 @@ import struct
 import hashlib
 import ecdsa
 import os
+import logging
 import csv
 from bitcoin.VerifyScript_P2PKH import createMsgForSig
 from bitcoin.VerifyScript_P2PKH import getScriptSig, bytes2Mmap, \
@@ -91,8 +92,6 @@ def uncompressPubkey(pubkey_b: bytes):
     return pubkey_b
 
 
-
-
 def sigcheck(sig_b: bytes, pubkey_b: bytes,
              script_b: bytes, inp_index: int, tx: dict):
     sighash_type = sig_b[-1]
@@ -108,10 +107,16 @@ def sigcheck(sig_b: bytes, pubkey_b: bytes,
         msg_b = createMsgForSig(tx, script_b, inp_index, sighash_type)
     msg_h = hashlib.sha256(msg_b).digest()
     prefix = pubkey_b[0:1]
+    fullpubkey_b = None
     if prefix == b"\x02" or prefix == b"\x03":
         fullpubkey_b = uncompressPubkey(pubkey_b)[1:]
     elif prefix == b"\x04":
         fullpubkey_b = pubkey_b[1:]
+    if not fullpubkey_b:
+        result = b'\x00'
+        logging.error(
+            f'[sigcheck]not fullpubkey_b, tx_id:{tx["txid"]} sig_b:{sig_b} pubkey_b:{pubkey_b} script_b:{script_b} inp_index:{inp_index} sighash_type:{sighash_type} msg_b:{msg_b} msg_h:{msg_h} prefix:{prefix}')
+        return result
     rs_b = getRandSFromSig(sig_b)
     # print('sig = %s' % sig_b.hex())
     # print('pubkey = %s' % pubkey_b.hex())

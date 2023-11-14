@@ -1,6 +1,9 @@
 import os
 import mmap
 import csv
+import logging
+from datetime import datetime
+
 from numba import njit, jit
 # import sys
 # sys.path.append("..")
@@ -13,6 +16,14 @@ from bitcoin.SegwitBlockTransaction import getTransactionInfo
 from bitcoin.VerifyScript_P2SH_P2WSH import verifyScript
 
 
+# 配置日志
+# 获取当前时间，并格式化为字符串
+current_time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+log_filename = f'blockchain_verification_{current_time}.log'
+logging.basicConfig(filename=f'../output/{log_filename}',
+                    level=logging.INFO,
+                    format='%(asctime)s %(levelname)s: %(message)s',
+                    datefmt='%Y-%m-%d %H:%M:%S')
 def load_block(block_hash):
     """
     load a block from file into memory, purse IO operation
@@ -74,7 +85,7 @@ def verify_blockchain() -> None:
     else:
         blockhash_bigendian_b = getRecentBlockHash(chainstate_db_g)
 
-    blocks = 9
+    blocks = 99
 
     while blockhash_bigendian_b and blocks > 0:
         mptr, blockheader, prev_blockhash_bigendian_b = load_block(blockhash_bigendian_b)
@@ -99,8 +110,8 @@ def verify_blockchain() -> None:
                 break
             if failed > 0:
                 failed_tx += 1
-            print(f'verified tx: {i}/{tx_count} {tx["txid"]}, {failed}/{tx["inp_cnt"]} inputs failed')
-        print(f'verified block: {blockhash} failed: {failed_tx}/{tx_count}')
+            logging.info(f'verified tx: {i}/{tx_count} {tx["txid"]}, {failed}/{tx["inp_cnt"]} inputs failed')
+        logging.info(f'verified block: {blockhash} failed: {failed_tx}/{tx_count}')
         mptr.close()
 
         blockhash_bigendian_b = prev_blockhash_bigendian_b
